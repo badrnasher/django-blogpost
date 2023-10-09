@@ -41,6 +41,8 @@ INSTALLED_APPS = [
     'blog.apps.BlogConfig',
     'rest_framework',
     'rest_framework.authtoken',
+    "drf_spectacular",
+
     'crispy_forms',
     'crispy_bootstrap5',
 ]
@@ -138,6 +140,19 @@ LOGOUT_REDIRECT_URL = '/login'
 AUTH_USER_MODEL = 'blog.User'
 
 REST_FRAMEWORK = {
+        'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.BasicAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
+        'rest_framework.authentication.TokenAuthentication',
+    ],
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
-    'PAGE_SIZE': 5,  # Set the number of items per page (e.g., 10 items per page)
+    'PAGE_SIZE': 10,  # Set the number of items per page (e.g., 10 items per page)
+}
+
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'BlogPost API',
+    'DESCRIPTION': ' Blogging Platform using Django',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
 }
