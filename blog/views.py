@@ -10,24 +10,24 @@ from .models import BlogPost
 from rest_framework import generics, permissions, status, viewsets, pagination, mixins
 from rest_framework.response import Response
 from .models import BlogPost, Comment
-from .serializers import BlogPostSerializer, CommentSerializer, RegistrationSerializer, LoginSerializer
+from .serializers import BlogPostSerializer, CommentSerializer, RegistrationSerializer, LoginSerializer, CommentCreateUpdateSerializer
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
 from rest_framework.pagination import PageNumberPagination
 
-# class IsAuthorOrReadOnly(permissions.BasePermission):
-#     def has_object_permission(self, request, view, obj):
-#         # Read permissions are allowed to any request
-#         if request.method in permissions.SAFE_METHODS:
-#             return True
+class IsAuthorOrReadOnly(permissions.BasePermission):
+    def has_object_permission(self, request, view, obj):
+        # Read permissions are allowed to any request
+        if request.method in permissions.SAFE_METHODS:
+            return True
 
-#         # Write permissions are allowed for superusers and staff
-#         if request.user.is_superuser or request.user.is_staff:
-#             return True
+        # Write permissions are allowed for superusers and staff
+        if request.user.is_superuser or request.user.is_staff:
+            return True
 
-#         # Write permissions are only allowed to the owner of the post
-#         return obj.author == request.user
+        # Write permissions are only allowed to the owner of the post
+        return obj.author == request.user
     
 class RegistrationView(APIView):
     serializer_class = RegistrationSerializer
@@ -71,25 +71,63 @@ class LogoutView(APIView):
 class BlogPostViewSet(viewsets.ModelViewSet):
     queryset = BlogPost.objects.all()
     serializer_class = BlogPostSerializer
+    permission_classes = [IsAuthenticated, IsAuthorOrReadOnly]
+    authentication_classes = [SessionAuthentication, BasicAuthentication]
+    pagination_class = pagination.PageNumberPagination  # Add pagination class here
+
+
+    def perform_create(self, serializer):
+        serializer.save(author=self.request.user)
+
+    def perform_update(self, serializer):
+        serializer.save(author=self.request.user)
+
+    def perform_destroy(self, instance):
+        instance.delete()
+
+    
+class CommentCreateView(APIView):
     permission_classes = [IsAuthenticated]
-    authentication_classes = [SessionAuthentication, BasicAuthentication]
-    pagination_class = pagination.PageNumberPagination  # Add pagination class here
+    serializer_class = CommentCreateUpdateSerializer
+    def post(self, request, post_id):
+        # Check if the post with the given post_id exists
+        try:
+            post = BlogPost.objects.get(pk=post_id)
+        except BlogPost.DoesNotExist:
+            return Response({"message": "Post not found"}, status=status.HTTP_404_NOT_FOUND)
 
-
-    def perform_create(self, serializer):
-        serializer.save(author=self.request.user)
+        # Create a new comment associated with the post
+        serializer = CommentCreateUpdateSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save(author=self.request.user, post=post)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     
-    
-class CommentViewSet(viewsets.ModelViewSet):
-    serializer_class = CommentSerializer
-    queryset = Comment.objects.all()
-    permission_classes = [IsAuthenticated]  # Add the custom permission class here
-    authentication_classes = [SessionAuthentication, BasicAuthentication]
-    pagination_class = pagination.PageNumberPagination  # Add pagination class here
+class CommentListView(generics.RetrieveAPIView):
+    pagination_class = PageNumberPagination  # Use the default PageNumberPagination
+    serializer_class = CommentSerializer  # Use the CommentSerializer
+    queryset = Comment.objects.all()  # Get all Comment objects
+    def get(self, request):
+        queryset = Comment.objects.all()  # Get all Comment objects
+        page = self.paginate_queryset(queryset)  # Paginate the queryset
 
-    def perform_create(self, serializer):
-        serializer.save(author=self.request.user)
+        if page is not None:
+            serializer = CommentSerializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+        
+        serializer = CommentSerializer(queryset, many=True)
+        return Response(serializer.data)
+
+# class CommentViewSet(viewsets.ModelViewSet):
+#     serializer_class = CommentSerializer
+#     queryset = Comment.objects.all()
+#     permission_classes = [IsAuthenticated]  # Add the custom permission class here
+#     authentication_classes = [SessionAuthentication, BasicAuthentication]
+#     pagination_class = pagination.PageNumberPagination  # Add pagination class here
+
+#     def perform_create(self, serializer):
+#         serializer.save(author=self.request.user)
 
 # class PostAPIView(APIView):
 #     pagination_class = PageNumberPagination

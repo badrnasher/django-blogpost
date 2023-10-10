@@ -4,9 +4,26 @@ info:
   version: 1.0.0
   description: ' Blogging Platform using Django'
 paths:
-  /api/blogposts/:
+  /api/comments/:
     get:
-      operationId: api_blogposts_list
+      operationId: api_comments_retrieve
+      tags:
+      - api
+      security:
+      - basicAuth: []
+      - cookieAuth: []
+      - tokenAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Comment'
+          description: ''
+  /api/posts/:
+    get:
+      operationId: api_posts_list
       parameters:
       - name: page
         required: false
@@ -27,7 +44,7 @@ paths:
                 $ref: '#/components/schemas/PaginatedBlogPostList'
           description: ''
     post:
-      operationId: api_blogposts_create
+      operationId: api_posts_create
       tags:
       - api
       requestBody:
@@ -52,9 +69,9 @@ paths:
               schema:
                 $ref: '#/components/schemas/BlogPost'
           description: ''
-  /api/blogposts/{id}/:
+  /api/posts/{id}/:
     get:
-      operationId: api_blogposts_retrieve
+      operationId: api_posts_retrieve
       parameters:
       - in: path
         name: id
@@ -75,7 +92,7 @@ paths:
                 $ref: '#/components/schemas/BlogPost'
           description: ''
     put:
-      operationId: api_blogposts_update
+      operationId: api_posts_update
       parameters:
       - in: path
         name: id
@@ -108,7 +125,7 @@ paths:
                 $ref: '#/components/schemas/BlogPost'
           description: ''
     patch:
-      operationId: api_blogposts_partial_update
+      operationId: api_posts_partial_update
       parameters:
       - in: path
         name: id
@@ -140,7 +157,7 @@ paths:
                 $ref: '#/components/schemas/BlogPost'
           description: ''
     delete:
-      operationId: api_blogposts_destroy
+      operationId: api_posts_destroy
       parameters:
       - in: path
         name: id
@@ -156,84 +173,14 @@ paths:
       responses:
         '204':
           description: No response body
-  /api/comments/:
-    get:
-      operationId: api_comments_list
-      parameters:
-      - name: page
-        required: false
-        in: query
-        description: A page number within the paginated result set.
-        schema:
-          type: integer
-      tags:
-      - api
-      security:
-      - basicAuth: []
-      - cookieAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PaginatedCommentList'
-          description: ''
+  /api/posts/{post_id}/comments/:
     post:
-      operationId: api_comments_create
-      tags:
-      - api
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Comment'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/Comment'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/Comment'
-        required: true
-      security:
-      - basicAuth: []
-      - cookieAuth: []
-      responses:
-        '201':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Comment'
-          description: ''
-  /api/comments/{id}/:
-    get:
-      operationId: api_comments_retrieve
+      operationId: api_posts_comments_create
       parameters:
       - in: path
-        name: id
+        name: post_id
         schema:
           type: integer
-        description: A unique integer value identifying this comment.
-        required: true
-      tags:
-      - api
-      security:
-      - basicAuth: []
-      - cookieAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Comment'
-          description: ''
-    put:
-      operationId: api_comments_update
-      parameters:
-      - in: path
-        name: id
-        schema:
-          type: integer
-        description: A unique integer value identifying this comment.
         required: true
       tags:
       - api
@@ -241,73 +188,25 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Comment'
+              $ref: '#/components/schemas/CommentCreateUpdate'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/Comment'
+              $ref: '#/components/schemas/CommentCreateUpdate'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/Comment'
+              $ref: '#/components/schemas/CommentCreateUpdate'
         required: true
       security:
       - basicAuth: []
       - cookieAuth: []
+      - tokenAuth: []
       responses:
         '200':
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Comment'
+                $ref: '#/components/schemas/CommentCreateUpdate'
           description: ''
-    patch:
-      operationId: api_comments_partial_update
-      parameters:
-      - in: path
-        name: id
-        schema:
-          type: integer
-        description: A unique integer value identifying this comment.
-        required: true
-      tags:
-      - api
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/PatchedComment'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/PatchedComment'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/PatchedComment'
-      security:
-      - basicAuth: []
-      - cookieAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Comment'
-          description: ''
-    delete:
-      operationId: api_comments_destroy
-      parameters:
-      - in: path
-        name: id
-        schema:
-          type: integer
-        description: A unique integer value identifying this comment.
-        required: true
-      tags:
-      - api
-      security:
-      - basicAuth: []
-      - cookieAuth: []
-      responses:
-        '204':
-          description: No response body
   /login/:
     post:
       operationId: login_create
@@ -328,6 +227,7 @@ paths:
       security:
       - basicAuth: []
       - cookieAuth: []
+      - tokenAuth: []
       - {}
       responses:
         '200':
@@ -344,6 +244,7 @@ paths:
       security:
       - basicAuth: []
       - cookieAuth: []
+      - tokenAuth: []
       responses:
         '200':
           description: No response body
@@ -367,6 +268,7 @@ paths:
       security:
       - basicAuth: []
       - cookieAuth: []
+      - tokenAuth: []
       - {}
       responses:
         '200':
@@ -427,6 +329,13 @@ components:
       - created_at
       - id
       - post
+    CommentCreateUpdate:
+      type: object
+      properties:
+        content:
+          type: string
+      required:
+      - content
     Login:
       type: object
       properties:
@@ -459,26 +368,6 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/BlogPost'
-    PaginatedCommentList:
-      type: object
-      properties:
-        count:
-          type: integer
-          example: 123
-        next:
-          type: string
-          nullable: true
-          format: uri
-          example: http://api.example.org/accounts/?page=4
-        previous:
-          type: string
-          nullable: true
-          format: uri
-          example: http://api.example.org/accounts/?page=2
-        results:
-          type: array
-          items:
-            $ref: '#/components/schemas/Comment'
     PatchedBlogPost:
       type: object
       properties:
@@ -499,22 +388,6 @@ components:
           format: date-time
           readOnly: true
         author:
-          type: integer
-    PatchedComment:
-      type: object
-      properties:
-        id:
-          type: integer
-          readOnly: true
-        content:
-          type: string
-        created_at:
-          type: string
-          format: date-time
-          readOnly: true
-        author:
-          type: integer
-        post:
           type: integer
     Registration:
       type: object
@@ -544,3 +417,8 @@ components:
       type: apiKey
       in: cookie
       name: sessionid
+    tokenAuth:
+      type: apiKey
+      in: header
+      name: Authorization
+      description: Token-based authentication with required prefix "Token"
