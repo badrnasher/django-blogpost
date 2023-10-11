@@ -10,10 +10,10 @@ from .models import BlogPost
 from rest_framework import generics, permissions, status, viewsets, pagination, mixins
 from rest_framework.response import Response
 from .models import BlogPost, Comment
-from .serializers import BlogPostSerializer, CommentSerializer, RegistrationSerializer, LoginSerializer, CommentCreateUpdateSerializer
+from .serializers import BlogPostSerializer, CommentSerializer, RegistrationSerializer, LoginSerializer
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.pagination import PageNumberPagination
 
 class IsAuthorOrReadOnly(permissions.BasePermission):
@@ -88,8 +88,8 @@ class BlogPostViewSet(viewsets.ModelViewSet):
     
 class CommentCreateView(APIView):
     permission_classes = [IsAuthenticated]
-    serializer_class = CommentCreateUpdateSerializer
-    def post(self, request, post_id):
+    serializer_class = CommentSerializer
+    def post(self, request, post_id):   
         # Check if the post with the given post_id exists
         try:
             post = BlogPost.objects.get(pk=post_id)
@@ -97,10 +97,17 @@ class CommentCreateView(APIView):
             return Response({"message": "Post not found"}, status=status.HTTP_404_NOT_FOUND)
 
         # Create a new comment associated with the post
-        serializer = CommentCreateUpdateSerializer(data=request.data)
+        serializer = CommentSerializer(data=request.data)
         if serializer.is_valid():
-            serializer.save(author=self.request.user, post=post)
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
+            # Grab the content from the validated data
+            content = serializer.validated_data['content']
+
+            # Create the new comment
+            comment = Comment(content=content, author=self.request.user, post=post)
+            comment.save()
+
+            # Return the new comment
+            return Response(CommentSerializer(comment).data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     

@@ -22,7 +22,7 @@ from .views import BlogPostViewSet, RegistrationView, LoginView, LogoutView, Com
 
 # Create a router and register the viewset with it.
 router = DefaultRouter()
-router.register(r'posts', BlogPostViewSet)
+router.register('posts', BlogPostViewSet)
 # router.register(r'comments', CommentViewSet)
 
 urlpatterns = [

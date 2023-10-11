@@ -39,18 +39,21 @@ class LoginSerializer(serializers.Serializer):
         return data
 
 class BlogPostSerializer(serializers.ModelSerializer):
+    author = serializers.ReadOnlyField(source='author.username')
+    comments = serializers.SerializerMethodField(read_only=True)
     class Meta:
         model = BlogPost
         fields = '__all__'
 
+    def get_comments(self, obj):
+        comments = Comment.objects.filter(post=obj)
+        return CommentSerializer(comments, many=True).data
+
 class CommentSerializer(serializers.ModelSerializer):
+    author = serializers.ReadOnlyField(source='author.username')
+    post = serializers.ReadOnlyField(source='post.title')
     class Meta:
         model = Comment
         fields = '__all__'
 
-class CommentCreateUpdateSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Comment
-        fields = [
-            "content",
-        ]
+
