@@ -23,7 +23,7 @@ from .views import BlogPostViewSet, RegistrationView, LoginView, LogoutView, Com
 # Create a router and register the viewset with it.
 router = DefaultRouter()
 router.register('posts', BlogPostViewSet)
-# router.register(r'comments', CommentViewSet)
+# router.register('comments', CommentViewSet)
 
 urlpatterns = [
     # Your other URL patterns go here
@@ -31,6 +31,6 @@ urlpatterns = [
     path('login/', LoginView.as_view(), name='login'),
     path('logout/', LogoutView.as_view(), name='logout'),
     path('api/', include(router.urls)),
-    path('api/posts/<int:post_id>/comments/', CommentCreateView.as_view(), name='comment-create'),
-    path('api/comments/', CommentListView.as_view(), name='comment-list'),
+    path('api/post/<int:post_id>/comments/', CommentListView.as_view(), name='comment-list'),
+    path('api/post/<int:post_id>/comment/', CommentCreateView.as_view(), name='comment-create'),
 ]

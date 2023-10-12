@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import BlogPost, Comment, User
+from .models import BlogPost, Comment, User, Tag
 from django.contrib.auth.admin import UserAdmin
 
 
@@ -21,3 +21,5 @@ class CommentAdmin(admin.ModelAdmin):
     search_fields = ('author', 'post')
 
 admin.site.register(Comment, CommentAdmin)
+
+admin.site.register(Tag, admin.ModelAdmin)

@@ -2,6 +2,7 @@ from rest_framework.authtoken.models import Token
 from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.authentication import SessionAuthentication, BasicAuthentication
 from django.shortcuts import render, redirect
+from rest_framework.decorators import action
 from .forms import RegisterForm, PostForm, CommentForm
 from django.contrib.auth.decorators import login_required, permission_required
 from django.contrib.auth import login, logout
@@ -10,7 +11,7 @@ from .models import BlogPost
 from rest_framework import generics, permissions, status, viewsets, pagination, mixins
 from rest_framework.response import Response
 from .models import BlogPost, Comment
-from .serializers import BlogPostSerializer, CommentSerializer, RegistrationSerializer, LoginSerializer
+from .serializers import BlogPostSerializer, CommentSerializer, RegistrationSerializer, LoginSerializer, TagSerializer
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
@@ -85,7 +86,35 @@ class BlogPostViewSet(viewsets.ModelViewSet):
     def perform_destroy(self, instance):
         instance.delete()
 
+    @action(detail=True, methods=['POST'], url_path='add-tags')
+    def add_tags(self, request, pk=None):
+        instance = self.get_object()
+        serializer = TagSerializer(data=request.data)
+
+        if serializer.is_valid():
+            # Add the tags to the BlogPost
+            instance.tags.add(*serializer.validated_data['tags'])
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
+    @action(detail=True, methods=['PUT'], url_path='update-tags')
+    def update_tags(self, request, pk=None):
+        instance = self.get_object()
+        serializer = TagSerializer(data=request.data)
+
+        if serializer.is_valid():
+            # Update the tags for the BlogPost
+            instance.tags.set(serializer.validated_data['tags'])
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    # Custom action to delete all tags for a BlogPost
+    @action(detail=True, methods=['DELETE'], url_path='delete-tags')
+    def delete_tags(self, request, pk=None):
+        instance = self.get_object()
+        instance.tags.clear()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+   
 class CommentCreateView(APIView):
     permission_classes = [IsAuthenticated]
     serializer_class = CommentSerializer
@@ -115,16 +144,14 @@ class CommentListView(generics.RetrieveAPIView):
     pagination_class = PageNumberPagination  # Use the default PageNumberPagination
     serializer_class = CommentSerializer  # Use the CommentSerializer
     queryset = Comment.objects.all()  # Get all Comment objects
-    def get(self, request):
-        queryset = Comment.objects.all()  # Get all Comment objects
-        page = self.paginate_queryset(queryset)  # Paginate the queryset
-
-        if page is not None:
-            serializer = CommentSerializer(page, many=True)
-            return self.get_paginated_response(serializer.data)
-        
-        serializer = CommentSerializer(queryset, many=True)
-        return Response(serializer.data)
+    def get(self, request, post_id=None):
+        try:
+            post = BlogPost.objects.get(pk=post_id)
+            comments = Comment.objects.filter(post=post)
+            serializer = CommentSerializer(comments, many=True)
+            return Response(serializer.data)
+        except BlogPost.DoesNotExist:    
+            return Response({'detail': 'Blog post not found.'}, status=status.HTTP_404_NOT_FOUND)
 
 # class CommentViewSet(viewsets.ModelViewSet):
 #     serializer_class = CommentSerializer
@@ -133,6 +160,7 @@ class CommentListView(generics.RetrieveAPIView):
 #     authentication_classes = [SessionAuthentication, BasicAuthentication]
 #     pagination_class = pagination.PageNumberPagination  # Add pagination class here
 
+    
 #     def perform_create(self, serializer):
 #         serializer.save(author=self.request.user)
 
