@@ -18,7 +18,7 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 
-from .views import BlogPostViewSet, RegistrationView, LoginView, LogoutView, CommentCreateView, CommentListView
+from .views import BlogPostViewSet, RegistrationView, LoginView, LogoutView, CommentCreateView, CommentListView, BlogPostDetailView
 
 # Create a router and register the viewset with it.
 router = DefaultRouter()

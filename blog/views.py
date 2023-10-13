@@ -11,7 +11,7 @@ from .models import BlogPost
 from rest_framework import generics, permissions, status, viewsets, pagination, mixins
 from rest_framework.response import Response
 from .models import BlogPost, Comment
-from .serializers import BlogPostSerializer, CommentSerializer, RegistrationSerializer, LoginSerializer, TagSerializer
+from .serializers import BlogPostSerializer, BlogPostDetailSerializer, CommentSerializer, RegistrationSerializer, LoginSerializer
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
@@ -44,7 +44,7 @@ class RegistrationView(APIView):
 class LoginView(APIView):
     serializer_class = LoginSerializer
     def post(self, request):
-        serializer = LoginSerializer(data=request.data)
+        serializer = LoginSerializer(data=self.request.data)
         
         if serializer.is_valid():
             user = serializer.validated_data['user']
@@ -57,10 +57,11 @@ class LoginView(APIView):
 
 class LogoutView(APIView):
     permission_classes = [IsAuthenticated]
+    authentication_classes = [SessionAuthentication, BasicAuthentication]
     def get(self, request):
         try:
             # Get the user's token
-            token = Token.objects.get(user=request.user)
+            token = Token.objects.get(user=self.request.user)
             # Delete the token to log the user out
             token.delete()
             logout(request)
@@ -71,9 +72,9 @@ class LogoutView(APIView):
 
 class BlogPostViewSet(viewsets.ModelViewSet):
     queryset = BlogPost.objects.all()
-    serializer_class = BlogPostSerializer
+    serializer_class = BlogPostSerializer, BlogPostDetailSerializer
     permission_classes = [IsAuthenticated, IsAuthorOrReadOnly]
-    authentication_classes = [SessionAuthentication, BasicAuthentication]
+    # authentication_classes = [SessionAuthentication, BasicAuthentication]
     pagination_class = pagination.PageNumberPagination  # Add pagination class here
 
 
@@ -86,35 +87,18 @@ class BlogPostViewSet(viewsets.ModelViewSet):
     def perform_destroy(self, instance):
         instance.delete()
 
-    @action(detail=True, methods=['POST'], url_path='add-tags')
-    def add_tags(self, request, pk=None):
-        instance = self.get_object()
-        serializer = TagSerializer(data=request.data)
-
-        if serializer.is_valid():
-            # Add the tags to the BlogPost
-            instance.tags.add(*serializer.validated_data['tags'])
-            return Response(serializer.data, status=status.HTTP_200_OK)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    
-    @action(detail=True, methods=['PUT'], url_path='update-tags')
-    def update_tags(self, request, pk=None):
-        instance = self.get_object()
-        serializer = TagSerializer(data=request.data)
-
-        if serializer.is_valid():
-            # Update the tags for the BlogPost
-            instance.tags.set(serializer.validated_data['tags'])
-            return Response(serializer.data, status=status.HTTP_200_OK)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    # Custom action to delete all tags for a BlogPost
-    @action(detail=True, methods=['DELETE'], url_path='delete-tags')
-    def delete_tags(self, request, pk=None):
-        instance = self.get_object()
-        instance.tags.clear()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+    def get_serializer_class(self):
+        if self.action == 'retrieve':
+            return BlogPostDetailSerializer
+        return BlogPostSerializer
    
+class BlogPostDetailView(APIView):
+    def get(self, request, post_id):
+        blog_post = BlogPost.objects.get(pk=post_id)
+        serializer = BlogPostDetailSerializer(blog_post)
+        return Response(serializer.data)
+    
+
 class CommentCreateView(APIView):
     permission_classes = [IsAuthenticated]
     serializer_class = CommentSerializer
@@ -268,40 +252,8 @@ class CommentListView(generics.RetrieveAPIView):
 #         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-
-# class CommentCreateView(APIView):
-#     permission_classes = [IsAuthenticated]
-#     serializer_class = CommentSerializer
-#     def post(self, request, post_id):
-#         # Check if the post with the given post_id exists
-#         try:
-#             post = BlogPost.objects.get(pk=post_id)
-#         except BlogPost.DoesNotExist:
-#             return Response({"message": "Post not found"}, status=status.HTTP_404_NOT_FOUND)
-
-#         # Create a new comment associated with the post
-#         serializer = CommentSerializer(data=request.data)
-#         print(request)
-#         if serializer.is_valid():
-#             serializer.save(author=self.request.user, post=post)
-#             return Response(serializer.data, status=status.HTTP_201_CREATED)
-#         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
     
-# class CommentListView(generics.RetrieveAPIView):
-#     pagination_class = PageNumberPagination  # Use the default PageNumberPagination
-#     serializer_class = CommentSerializer  # Use the CommentSerializer
-#     queryset = Comment.objects.all()  # Get all Comment objects
-#     def get(self, request):
-#         queryset = Comment.objects.all()  # Get all Comment objects
-#         page = self.paginate_queryset(queryset)  # Paginate the queryset
 
-#         if page is not None:
-#             serializer = CommentSerializer(page, many=True)
-#             return self.get_paginated_response(serializer.data)
-        
-#         serializer = CommentSerializer(queryset, many=True)
-#         return Response(serializer.data)
 
 # @login_required(login_url="/login")
 # def home(request):

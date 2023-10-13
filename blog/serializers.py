@@ -3,6 +3,10 @@ from .models import BlogPost, Comment, User, Tag
 from django.contrib.auth import authenticate
 from django.contrib.auth.password_validation import validate_password
 
+class TagSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Tag
+        fields = ['tag']
 
 class RegistrationSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=True, validators=[validate_password])
@@ -40,23 +44,32 @@ class LoginSerializer(serializers.Serializer):
 
 class BlogPostSerializer(serializers.ModelSerializer):
     author = serializers.ReadOnlyField(source='author.username')
-    comments = serializers.SerializerMethodField(read_only=True)
-    tags = serializers.StringRelatedField(many=True)
+    tags = TagSerializer(many=True)
+    
     class Meta:
         model = BlogPost
-        fields = '__all__'
+        fields = ['id', 'title', 'author', 'tags', 'created_at', 'updated_at']
+
+
+    
+class BlogPostDetailSerializer(BlogPostSerializer):
+
+    comments = serializers.SerializerMethodField(read_only=True)
+
+    class Meta(BlogPostSerializer.Meta):
+        fields = BlogPostSerializer.Meta.fields + ['content', 'comments']
 
     def get_comments(self, obj):
-        comments = Comment.objects.filter(post=obj)
-        return CommentSerializer(comments, many=True).data
+        comments = obj.comment_set.all()
+        serializer = CommentSerializer(comments, many=True)
+        return serializer.data
     
-    def create(self, validated_data):
-        tags = validated_data.pop('tags')
-        post = BlogPost.objects.create(**validated_data)
-        for tag in tags:
-            tag_obj = Tag.objects.get(tag=tag)
-            post.tags.add(tag_obj)
-        return post
+    # def get_tags(self, obj):
+    #     tags = obj.tags.all()
+    #     serializer = TagSerializer(tags, many=True)
+    #     return serializer.data
+
+    
 
 class CommentSerializer(serializers.ModelSerializer):
     author = serializers.ReadOnlyField(source='author.username')
@@ -66,9 +79,5 @@ class CommentSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-class TagSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Tag
-        fields = ['tag']
 
 

@@ -22,11 +22,11 @@ class BlogPost(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now= True)
 
-    @property
-    def comments(self):
-        instance = self
-        qs = Comment.objects.filter(parent=instance)
-        return qs
+    # @property
+    # def comments(self):
+    #     instance = self
+    #     qs = Comment.objects.filter(parent=instance)
+    #     return qs
     
     def __str__(self):
         return self.title
