@@ -130,6 +130,54 @@ class CommentListView(generics.RetrieveAPIView):
             return Response(serializer.data)
         except BlogPost.DoesNotExist:    
             return Response({'detail': 'Blog post not found.'}, status=status.HTTP_404_NOT_FOUND)
+        
+        
+class CommentUpdateView(APIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = CommentSerializer
+
+    def put(self, request, comment_id, post_id):
+        # Check if the comment with the given comment_id exists
+        try:
+            comment = Comment.objects.get(pk=comment_id)
+        except Comment.DoesNotExist:
+            return Response({"message": "Comment not found"}, status=status.HTTP_404_NOT_FOUND)
+        
+        if comment.post.id != post_id:
+            return Response({"message": "Comment not found"}, status=status.HTTP_404_NOT_FOUND)
+        # Check if the user is the author of the comment
+        if request.user != comment.author:
+            return Response({"message": "You are not authorized to update this comment"}, status=status.HTTP_403_FORBIDDEN)
+        
+        # Update the comment
+        serializer = CommentSerializer(comment, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+class CommentDeleteView(APIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = CommentSerializer
+
+    def delete(self, request, comment_id, post_id):
+
+        # Check if the comment with the given comment_id exists
+        try:
+            comment = Comment.objects.get(pk=comment_id)
+        except Comment.DoesNotExist:
+            return Response({"message": "Comment not found"}, status=status.HTTP_404_NOT_FOUND)
+        if comment.post.id != post_id:
+            return Response({"message": "Comment not found"}, status=status.HTTP_404_NOT_FOUND)
+        # Check if the user is the author of the comment
+        if request.user != comment.author:
+            return Response({"message": "You are not authorized to delete this comment"}, status=status.HTTP_403_FORBIDDEN)
+
+        # Delete the comment
+        comment.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+    
 
 # class CommentViewSet(viewsets.ModelViewSet):
 #     serializer_class = CommentSerializer
