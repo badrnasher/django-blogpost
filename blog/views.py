@@ -72,11 +72,15 @@ class LogoutView(APIView):
 
 class BlogPostViewSet(viewsets.ModelViewSet):
     queryset = BlogPost.objects.all()
-    serializer_class = BlogPostSerializer, BlogPostDetailSerializer
+    serializer_class = BlogPostDetailSerializer
     permission_classes = [IsAuthenticated, IsAuthorOrReadOnly]
     # authentication_classes = [SessionAuthentication, BasicAuthentication]
     pagination_class = pagination.PageNumberPagination  # Add pagination class here
 
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return BlogPostSerializer
+        return BlogPostDetailSerializer
 
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
@@ -87,16 +91,6 @@ class BlogPostViewSet(viewsets.ModelViewSet):
     def perform_destroy(self, instance):
         instance.delete()
 
-    def get_serializer_class(self):
-        if self.action == 'retrieve':
-            return BlogPostDetailSerializer
-        return BlogPostSerializer
-   
-class BlogPostDetailView(APIView):
-    def get(self, request, post_id):
-        blog_post = BlogPost.objects.get(pk=post_id)
-        serializer = BlogPostDetailSerializer(blog_post)
-        return Response(serializer.data)
     
 
 class CommentCreateView(APIView):
