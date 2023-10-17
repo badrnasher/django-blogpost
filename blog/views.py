@@ -57,7 +57,7 @@ class LoginView(APIView):
 
 class LogoutView(APIView):
     permission_classes = [IsAuthenticated]
-    authentication_classes = [SessionAuthentication, BasicAuthentication]
+    # authentication_classes = [SessionAuthentication, BasicAuthentication]
     def get(self, request):
         try:
             # Get the user's token
@@ -74,7 +74,7 @@ class BlogPostViewSet(viewsets.ModelViewSet):
     queryset = BlogPost.objects.all()
     serializer_class = BlogPostDetailSerializer
     permission_classes = [IsAuthenticated, IsAuthorOrReadOnly]
-    # authentication_classes = [SessionAuthentication, BasicAuthentication]
+    authentication_classes = [SessionAuthentication, BasicAuthentication] 
     pagination_class = pagination.PageNumberPagination  # Add pagination class here
 
     def get_serializer_class(self):
@@ -173,10 +173,9 @@ class CommentDeleteView(APIView):
         # Check if the user is the author of the comment
         if request.user != comment.author:
             return Response({"message": "You are not authorized to delete this comment"}, status=status.HTTP_403_FORBIDDEN)
-
         # Delete the comment
         comment.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        return Response({"message": "Comment deleted"}, status=status.HTTP_204_NO_CONTENT)
     
 
 # class CommentViewSet(viewsets.ModelViewSet):

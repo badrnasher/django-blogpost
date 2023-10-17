@@ -18,7 +18,7 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 
-from .views import BlogPostViewSet, RegistrationView, LoginView, LogoutView, CommentCreateView, CommentListView, CommentDeleteView
+from .views import BlogPostViewSet, RegistrationView, LoginView, LogoutView, CommentCreateView, CommentListView,CommentUpdateView, CommentDeleteView
 
 # Create a router and register the viewset with it.
 router = DefaultRouter()
@@ -32,5 +32,6 @@ urlpatterns = [
     path('api/', include(router.urls)),
     path('api/post/<int:post_id>/comments/', CommentListView.as_view(), name='comment-list'),
     path('api/post/<int:post_id>/comment/', CommentCreateView.as_view(), name='comment-create'),
+    path('api/post/<int:post_id>/comment/<int:comment_id>', CommentUpdateView.as_view(), name='comment-update'),
     path('api/post/<int:post_id>/comment/<int:comment_id>', CommentDeleteView.as_view(), name='comment-delete'),
 ]
