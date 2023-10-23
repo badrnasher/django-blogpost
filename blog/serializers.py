@@ -8,8 +8,8 @@ class TagSerializer(serializers.ModelSerializer):
         model = Tag
         fields = ['tag']
 
-    def to_representation(self, instance):
-        return super().to_representation(instance).get('tag')
+    # def to_representation(self, instance):
+    #     return super().to_representation(instance).get('tag')
 
 class RegistrationSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=True, validators=[validate_password])
@@ -66,25 +66,6 @@ class BlogPostDetailSerializer(BlogPostSerializer):
         comments = obj.comment_set.all()
         serializer = CommentSerializer(comments, many=True)
         return serializer.data
-
-    def create(self, validated_data):
-        tags = validated_data.pop('tags')
-        instance = BlogPost.objects.create(**validated_data)
-        for tag in tags:
-            tag, created = Tag.objects.get_or_create(tag=tag['tag'])
-            instance.tags.add(tag)
-        return instance
-    
-    def update(self, instance, validated_data):
-        tags = validated_data.pop('tags')
-        instance.title = validated_data.get('title', instance.title)
-        instance.content = validated_data.get('content', instance.content)
-        instance.save()
-        instance.tags.clear()
-        for tag in tags:
-            tag, created = Tag.objects.get_or_create(tag=tag['tag'])
-            instance.tags.add(tag)
-        return instance
 
     
 

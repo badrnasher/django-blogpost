@@ -7,11 +7,11 @@ from .forms import RegisterForm, PostForm, CommentForm
 from django.contrib.auth.decorators import login_required, permission_required
 from django.contrib.auth import login, logout
 from django.contrib.auth.models import User, Group
-from .models import BlogPost
+from .models import BlogPost, Tag
 from rest_framework import generics, permissions, status, viewsets, pagination, mixins
 from rest_framework.response import Response
 from .models import BlogPost, Comment
-from .serializers import BlogPostSerializer, BlogPostDetailSerializer, CommentSerializer, RegistrationSerializer, LoginSerializer
+from .serializers import BlogPostSerializer, BlogPostDetailSerializer, CommentSerializer, RegistrationSerializer, LoginSerializer, TagSerializer
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
@@ -83,14 +83,73 @@ class BlogPostViewSet(viewsets.ModelViewSet):
         return BlogPostDetailSerializer
 
     def perform_create(self, serializer):
-        serializer.save(author=self.request.user)
+        instance = serializer.save(author=self.request.user)
+        tags = serializer.validated_data['tags']
+        for tag in tags:
+            tag, created = Tag.objects.get_or_create(tag=tag['tag'])
+            instance.tags.add(tag)
+
+        return instance
 
     def perform_update(self, serializer):
         serializer.save(author=self.request.user)
-
+      
+    
     def perform_destroy(self, instance):
         instance.delete()
+        return Response({"message": "Post deleted"}, status=status.HTTP_204_NO_CONTENT)
 
+class TagViewSet(mixins.DestroyModelMixin,
+                 mixins.UpdateModelMixin,
+                 mixins.ListModelMixin,
+                 viewsets.GenericViewSet,):
+    queryset = Tag.objects.all()  
+    serializer_class = TagSerializer
+    permission_classes = [IsAuthenticated, IsAuthorOrReadOnly]
+    authentication_classes = [SessionAuthentication, BasicAuthentication]
+
+    
+    def get_queryset(self):
+        post_id = self.kwargs['post_id']
+        post = BlogPost.objects.get(pk=post_id)
+        return post.tags.all()
+
+    def update(self, request, *args, **kwargs):
+        post_id = self.kwargs['post_id']
+        post = BlogPost.objects.get(pk=post_id)
+        tag_name = request.data.get('tag', '')
+        print("Tag name:", tag_name)
+        try:
+            tag = Tag.objects.get(tag=tag_name)
+        except Tag.DoesNotExist:
+            tag = Tag.objects.create(tag=tag_name)
+        if tag in post.tags.all():
+            post.tags.set([tag])
+            print("Updated tags:", post.tags.all())
+            return Response({"message": "Tag updated"}, status=status.HTTP_200_OK)
+        else:
+            post.tags.add(tag)
+            print("Updated tags:", post.tags.all())
+            return Response({"message": "Tag added"}, status=status.HTTP_200_OK)
+
+
+    def destroy(self, request, *args, **kwargs):
+        post_id = self.kwargs['post_id']
+        post = BlogPost.objects.get(pk=post_id)
+        post.tags.clear()  # Remove all tags from the post
+        return Response({"message": "Tags deleted"}, status=status.HTTP_204_NO_CONTENT)
+    # def perform_destroy(self, instance):
+    #     post_id = self.kwargs['post_id']
+    #     post = BlogPost.objects.get(pk=post_id)
+    #     post.tags.remove(instance)
+    #     return Response({"message": "Tag deleted"}, status=status.HTTP_204_NO_CONTENT)
+    
+    # def perform_update(self, serializer):
+    #     instance = self.get_object()  # Get the tag instance
+    #     post_id = self.kwargs['post_id']
+    #     post = BlogPost.objects.get(pk=post_id)
+    #     post.tags.add(instance)
+    #     return Response({"message": "Tag added"}, status=status.HTTP_200_OK)
     
 
 class CommentCreateView(APIView):
@@ -176,124 +235,6 @@ class CommentDeleteView(APIView):
         # Delete the comment
         comment.delete()
         return Response({"message": "Comment deleted"}, status=status.HTTP_204_NO_CONTENT)
-    
-
-# class CommentViewSet(viewsets.ModelViewSet):
-#     serializer_class = CommentSerializer
-#     queryset = Comment.objects.all()
-#     permission_classes = [IsAuthenticated]  # Add the custom permission class here
-#     authentication_classes = [SessionAuthentication, BasicAuthentication]
-#     pagination_class = pagination.PageNumberPagination  # Add pagination class here
-
-    
-#     def perform_create(self, serializer):
-#         serializer.save(author=self.request.user)
-
-# class PostAPIView(APIView):
-#     pagination_class = PageNumberPagination
-#     serializer_class = BlogPostSerializer
-#     permission_classes = [IsAuthorOrReadOnly]
-
-#     def get(self, request, pk=None):
-#         if pk:
-#             try:
-#                 post = BlogPost.objects.get(pk=pk)
-#                 serializer = BlogPostSerializer(post)
-#                 return Response(serializer.data, status=status.HTTP_200_OK)
-#             except BlogPost.DoesNotExist:
-#                 return Response({"message": "Post not found"}, status=status.HTTP_404_NOT_FOUND)
-#         else:
-#             posts = BlogPost.objects.all()
-#             serializer = BlogPostSerializer(posts, many=True)
-#             return Response(serializer.data, status=status.HTTP_200_OK)
-        
-#     def post(self, request):
-#         serializer = BlogPostSerializer(data=request.data)
-#         if serializer.is_valid():
-#             serializer.save(author=request.user)
-#             return Response(serializer.data, status=status.HTTP_201_CREATED)
-#         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-#     def put(self, request, pk):
-#         try:
-#             post = BlogPost.objects.get(pk=pk)
-#             # if post.author != request.user and not request.user.is_staff:
-#             #     return Response({"message": "You do not have permission to update this post"}, status=status.HTTP_403_FORBIDDEN)
-#         except BlogPost.DoesNotExist:
-#             return Response({"message": "Post not found"}, status=status.HTTP_404_NOT_FOUND)
-
-#         serializer = BlogPostSerializer(post, data=request.data)
-#         if serializer.is_valid():
-#             serializer.save()
-#             return Response(serializer.data, status=status.HTTP_200_OK)
-#         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-#     def delete(self, request, pk):
-#         try:
-#             post = BlogPost.objects.get(pk=pk)
-#             # if post.author != request.user:
-#             #     return Response({"message": "You do not have permission to delete this post"}, status=status.HTTP_403_FORBIDDEN)
-#         except BlogPost.DoesNotExist:
-#             return Response({"message": "Post not found"}, status=status.HTTP_404_NOT_FOUND)
-
-#         post.delete()
-#         return Response({"message": "Post deleted"}, status=status.HTTP_204_NO_CONTENT)
-
-
-# class BlogPostCRUDView(generics.GenericAPIView):
-#     queryset = BlogPost.objects.all()
-#     serializer_class = BlogPostSerializer
-#     permission_classes = [permissions.IsAuthenticated]
-#     authentication_classes = [SessionAuthentication, BasicAuthentication]
-#     pagination_class = PageNumberPagination  # Add pagination class here
-
-#     def get(self, request, pk=None):
-#         if pk:
-#             try:
-#                 post = self.queryset.get(pk=pk)
-#             except BlogPost.DoesNotExist:
-#                 return Response({'detail': 'Blog post not found.'}, status=status.HTTP_404_NOT_FOUND)
-#             serializer = self.serializer_class(post)
-#             return Response(serializer.data)
-#         else:
-#             # Handle pagination for the list of blog posts
-#             paginated_queryset = self.paginate_queryset(self.queryset)
-#             serializer = self.serializer_class(paginated_queryset, many=True)
-#             return self.get_paginated_response(serializer.data)
-        
-#     def post(self, request):
-#         serializer = self.serializer_class(data=request.data)
-#         if serializer.is_valid():
-#             serializer.save(author=request.user)
-#             return Response(serializer.data, status=status.HTTP_201_CREATED)
-#         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-#     def put(self, request, pk):
-#         try:
-#             post = self.queryset.get(pk=pk)
-#         except BlogPost.DoesNotExist:
-#             return Response({'detail': 'Blog post not found.'}, status=status.HTTP_404_NOT_FOUND)
-
-#         self.check_object_permissions(request, post)
-
-#         serializer = self.serializer_class(post, data=request.data)
-#         if serializer.is_valid():
-#             serializer.save(author=request.user)
-#             return Response(serializer.data)
-#         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-#     def delete(self, request, pk):
-#         try:
-#             post = self.queryset.get(pk=pk)
-#         except BlogPost.DoesNotExist:
-#             return Response({'detail': 'Blog post not found.'}, status=status.HTTP_404_NOT_FOUND)
-
-#         self.check_object_permissions(request, post)
-#         post.delete()
-#         return Response(status=status.HTTP_204_NO_CONTENT)
-
-
-    
 
 
 # @login_required(login_url="/login")
