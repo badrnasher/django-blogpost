@@ -6,7 +6,7 @@ from django.contrib.auth.password_validation import validate_password
 class TagSerializer(serializers.ModelSerializer):
     class Meta:
         model = Tag
-        fields = ['tag']
+        fields = ['id','tag']
 
     # def to_representation(self, instance):
     #     return super().to_representation(instance).get('tag')

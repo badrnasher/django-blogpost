@@ -2,12 +2,11 @@ from rest_framework.authtoken.models import Token
 from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.authentication import SessionAuthentication, BasicAuthentication
 from django.shortcuts import render, redirect
-from rest_framework.decorators import action
 from .forms import RegisterForm, PostForm, CommentForm
 from django.contrib.auth.decorators import login_required, permission_required
 from django.contrib.auth import login, logout
-from django.contrib.auth.models import User, Group
-from .models import BlogPost, Tag
+from django.contrib.auth.models import Group
+from .models import BlogPost, Tag, User
 from rest_framework import generics, permissions, status, viewsets, pagination, mixins
 from rest_framework.response import Response
 from .models import BlogPost, Comment
@@ -113,6 +112,19 @@ class TagViewSet(mixins.DestroyModelMixin,
         post_id = self.kwargs['post_id']
         post = BlogPost.objects.get(pk=post_id)
         return post.tags.all()
+    
+    def retrieve (self, request, *args, **kwargs):
+        post_id = self.kwargs['post_id']
+        post = BlogPost.objects.get(pk=post_id)
+        tag_id = kwargs['pk']
+        try:
+            tag = Tag.objects.get(pk=tag_id)
+        except Tag.DoesNotExist:
+            return Response({"message": "Tag not found"}, status=status.HTTP_404_NOT_FOUND)
+        if tag in post.tags.all():
+            return Response({"message": "Tag found"}, status=status.HTTP_200_OK)
+        else:
+            return Response({"message": "Tag not found"}, status=status.HTTP_404_NOT_FOUND)
 
     def update(self, request, *args, **kwargs):
         post_id = self.kwargs['post_id']
@@ -120,6 +132,8 @@ class TagViewSet(mixins.DestroyModelMixin,
         tag_name = request.data.get('tag', '')
         print("Tag name:", tag_name)
         try:
+            if post.author != self.request.user:
+                return Response({"message": "You are not authorized to update this tag"}, status=status.HTTP_403_FORBIDDEN)
             tag = Tag.objects.get(tag=tag_name)
         except Tag.DoesNotExist:
             tag = Tag.objects.create(tag=tag_name)
@@ -136,8 +150,13 @@ class TagViewSet(mixins.DestroyModelMixin,
     def destroy(self, request, *args, **kwargs):
         post_id = self.kwargs['post_id']
         post = BlogPost.objects.get(pk=post_id)
-        post.tags.clear()  # Remove all tags from the post
-        return Response({"message": "Tags deleted"}, status=status.HTTP_204_NO_CONTENT)
+        tag_id = kwargs['pk']
+        try:
+            tag = Tag.objects.get(pk=tag_id)
+        except Tag.DoesNotExist:
+            return Response({"message": "Tag not found"}, status=status.HTTP_404_NOT_FOUND)
+        post.tags.remove(tag)
+        return Response({"message": "Tag deleted"}, status=status.HTTP_204_NO_CONTENT)
     # def perform_destroy(self, instance):
     #     post_id = self.kwargs['post_id']
     #     post = BlogPost.objects.get(pk=post_id)
@@ -237,79 +256,79 @@ class CommentDeleteView(APIView):
         return Response({"message": "Comment deleted"}, status=status.HTTP_204_NO_CONTENT)
 
 
-# @login_required(login_url="/login")
-# def home(request):
-#     posts = BlogPost.objects.all()
+@login_required(login_url="/login")
+def home(request):
+    posts = BlogPost.objects.all()
 
-#     if request.method == "POST":
-#         post_id = request.POST.get("post-id")
-#         user_id = request.POST.get("user-id")
+    if request.method == "POST":
+        post_id = request.POST.get("post-id")
+        user_id = request.POST.get("user-id")
 
-#         if post_id:
-#             post = BlogPost.objects.filter(id=post_id).first()
-#             if post and (post.author == request.user or request.user.has_perm("main.delete_post")):
-#                 post.delete()
-#         elif user_id:
-#             user = User.objects.filter(id=user_id).first()
-#             if user and request.user.is_staff:
-#                 try:
-#                     group = Group.objects.get(name='default')
-#                     group.user_set.remove(user)
-#                 except:
-#                     pass
+        if post_id:
+            post = BlogPost.objects.filter(id=post_id).first()
+            if post and (post.author == request.user or request.user.has_perm("main.delete_post")):
+                post.delete()
+        elif user_id:
+            user = User.objects.filter(id=user_id).first()
+            if user and request.user.is_staff:
+                try:
+                    group = Group.objects.get(name='default')
+                    group.user_set.remove(user)
+                except:
+                    pass
 
-#                 try:
-#                     group = Group.objects.get(name='mod')
-#                     group.user_set.remove(user)
-#                 except:
-#                     pass
+                try:
+                    group = Group.objects.get(name='mod')
+                    group.user_set.remove(user)
+                except:
+                    pass
 
-#     return render(request, 'main/home.html', {"posts": posts})
-
-
-# @login_required(login_url="/login")
-# @permission_required("main.add_post", login_url="/login", raise_exception=True)
-# def create_post(request):
-#     if request.method == 'POST':
-#         form = PostForm(request.POST)
-#         if form.is_valid():
-#             post = form.save(commit=False)
-#             post.author = request.user
-#             post.save()
-#             return redirect("/home")
-#     else:
-#         form = PostForm()
-
-#     return render(request, 'main/create_post.html', {"form": form})
+    return render(request, 'main/home.html', {"posts": posts})
 
 
-# def sign_up(request):
-#     if request.method == 'POST':
-#         form = RegisterForm(request.POST)
-#         if form.is_valid():
-#             user = form.save()
-#             login(request, user)
-#             return redirect('/home')
-#     else:
-#         form = RegisterForm()
+@login_required(login_url="/login")
+@permission_required("main.add_post", login_url="/login", raise_exception=True)
+def create_post(request):
+    if request.method == 'POST':
+        form = PostForm(request.POST)
+        if form.is_valid():
+            post = form.save(commit=False)
+            post.author = request.user
+            post.save()
+            return redirect("/home")
+    else:
+        form = PostForm()
 
-#     return render(request, 'registration/sign_up.html', {"form": form})
+    return render(request, 'main/create_post.html', {"form": form})
 
-# @login_required(login_url="/login")
-# def post_detail(request, post_id):
-#     post = BlogPost.objects.get(pk=post_id)
-#     comments = Comment.objects.filter(post=post)
 
-#     if request.method == 'POST':
-#         form = CommentForm(request.POST)
-#         if form.is_valid():
-#             comment = form.save(commit=False)
-#             comment.author = request.user
-#             comment.post = post
-#             comment.save()
-#             return redirect('post_detail', post_id=post_id)
+def sign_up(request):
+    if request.method == 'POST':
+        form = RegisterForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            login(request, user)
+            return redirect('/home')
+    else:
+        form = RegisterForm()
 
-#     else:
-#         form = CommentForm()
+    return render(request, 'registration/sign_up.html', {"form": form})
 
-#     return render(request, 'post_detail.html', {"form": form})
+@login_required(login_url="/login")
+def post_detail(request, post_id):
+    post = BlogPost.objects.get(pk=post_id)
+    comments = Comment.objects.filter(post=post)
+
+    if request.method == 'POST':
+        form = CommentForm(request.POST)
+        if form.is_valid():
+            comment = form.save(commit=False)
+            comment.author = request.user
+            comment.post = post
+            comment.save()
+            return redirect('post_detail', post_id=post_id)
+
+    else:
+        form = CommentForm()
+
+    return render(request, 'post_detail.html', {"form": form})
