@@ -11,6 +11,35 @@
     </div>
     <div class="card-footer text-muted">{{ post.created_at }}</div>
   </div>
+  <div>
+    {% if user == post.author or perms.main.delete_post %}
+    <form method="post">
+      {% csrf_token %}
+      <button
+        type="submit"
+        class="btn btn-danger"
+        name="post-id"
+        value="{{post.id}}"
+      >
+        Delete
+      </button>
+    </form>
+    <a href="{% url 'post-edit' post.id %}" class="btn btn-primary">Edit</a>
+    {% endif %}
+    {% if user.is_staff %}
+    <form method="post">
+      {% csrf_token %}
+      <button
+        type="submit"
+        class="btn btn-warning"
+        name="user-id"
+        value="{{post.author.id}}"
+      >
+        Ban User
+      </button>
+    </form>
+    {% endif %}
+  </div>
 
   <!-- Display comments for the post -->
   <div class="card mt-2">

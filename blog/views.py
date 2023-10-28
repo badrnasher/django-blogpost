@@ -259,6 +259,7 @@ class CommentDeleteView(APIView):
 @login_required(login_url="/login")
 def home(request):
     posts = BlogPost.objects.all()
+    comments = Comment.objects.all()
 
     if request.method == "POST":
         post_id = request.POST.get("post-id")
@@ -283,11 +284,22 @@ def home(request):
                 except:
                     pass
 
-    return render(request, 'main/home.html', {"posts": posts})
+        
+            form = CommentForm(request.POST)
+            if form.is_valid():
+                comment = form.save(commit=False)
+                comment.author = request.user
+                comment.save()
+                
+            
+    else:
+        form = CommentForm()
 
+
+    return render(request, 'main/home.html', {"posts": posts,"comments":comments, "form": form})
 
 @login_required(login_url="/login")
-@permission_required("main.add_post", login_url="/login", raise_exception=True)
+# @permission_required("main.add_post", login_url="/login", raise_exception=True)
 def create_post(request):
     if request.method == 'POST':
         form = PostForm(request.POST)
@@ -312,7 +324,7 @@ def sign_up(request):
     else:
         form = RegisterForm()
 
-    return render(request, 'registration/sign_up.html', {"form": form})
+    return render(request, 'registration/signup.html', {"form": form})
 
 @login_required(login_url="/login")
 def post_detail(request, post_id):
@@ -331,4 +343,23 @@ def post_detail(request, post_id):
     else:
         form = CommentForm()
 
-    return render(request, 'post_detail.html', {"form": form})
+    return render(request, 'main/post_detail.html', {"post": post, "form": form})
+
+@login_required(login_url="/login")
+def profile(request):
+    post = BlogPost.objects.filter(author=request.user)
+    return render(request, 'main/profile.html', {"posts": post})
+
+
+@login_required(login_url="/login")
+def edit_post(request, post_id):
+    post = BlogPost.objects.get(pk=post_id)
+    form = PostForm(instance=post)
+
+    if request.method == 'POST':
+        form = PostForm(request.POST, instance=post)
+        if form.is_valid():
+            post.save()
+            return redirect('post-detail', post_id=post_id) 
+
+    return render(request, 'main/create_post.html', {"form": form})
