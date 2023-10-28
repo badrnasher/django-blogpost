@@ -1,4 +1,4 @@
-{% extends 'main/base.html' %} {% block title %}Home Page{% endblock %} 
+{% extends 'main/base.html' %} {% block title %}Profile{% endblock %} 
 {% block content %} {% for post in posts %}
 <div class="card mt-2">
   <div class="card-header"><strong>@{{ post.author.username }}</strong></div>
@@ -6,11 +6,6 @@
     <div>
       <h5 class="card-title"><a href="{% url 'post-detail' post.id %}">{{post.title}}</a></h5>
       <p>{{post.content}}</p>
-      {% if post.tags.all %}
-      <p>Tags: {{ post.tags.all|join:", " }}</p>
-      {% else %}
-      <p>No tags yet.</p>
-      {% endif %}
     </div>
     <div>
       {% if user == post.author or perms.main.delete_post %}
@@ -42,9 +37,7 @@
       {% endif %}
     </div>
   </div>
-  <div class="card-footer text-muted">{{post.created_at}}</div>
-</div>
-<!-- Display comments for the post
+        <!-- Display comments for the post -->
 <div class="card mt-2">
   <div class="card-header"><strong>Comments</strong></div>
   <div class="card-body">
@@ -59,9 +52,11 @@
       <p>No comments yet.</p>
     {% endfor %}
   </div>
-</div> -->
+</div>
+  <div class="card-footer text-muted">{{post.created_at}}</div>
+</div>
     <!-- Add a form to allow users to submit comments -->
-    <!-- <div class="card mt-2">
+    <div class="card mt-2">
       <div class="card-header"><strong>Add a Comment</strong></div>
       <div class="card-body">
         <form method="post">
@@ -73,7 +68,7 @@
           <button type="submit" class="btn btn-primary">Submit</button>
         </form>
       </div>
-    </div> -->
+    </div>
 {% empty %}
 <p>No posts yet :(</p>
 {% endfor %} {% endblock %}
