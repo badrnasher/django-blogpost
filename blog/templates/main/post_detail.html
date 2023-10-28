@@ -8,55 +8,55 @@
         <h5 class="card-title">{{ post.title }}</h5>
         <p>{{ post.content }}</p>
       </div>
+      <div>
+        {% if user == post.author or perms.main.delete_post %}
+        <form method="post">
+          {% csrf_token %}
+          <button
+            type="submit"
+            class="btn btn-danger"
+            name="post-id"
+            value="{{post.id}}"
+          >
+            Delete
+          </button>
+        </form>
+        <a href="{% url 'post-edit' post.id %}" class="btn btn-primary">Edit</a>
+        {% endif %}
+        {% if user.is_staff %}
+        <form method="post">
+          {% csrf_token %}
+          <button
+            type="submit"
+            class="btn btn-warning"
+            name="user-id"
+            value="{{post.author.id}}"
+          >
+            Ban User
+          </button>
+        </form>
+        {% endif %}
+      </div>
+    </div>
+    <!-- Display comments for the post -->
+    <div class="card mt-2">
+      <div class="card-header"><strong>Comments</strong></div>
+      <div class="card-body">
+        {% for comment in post.comment_set.all %}
+          <div class="media mt-2">
+            <div class="media-body">
+              <h5 class="mt-0">{{ comment.author.username }}</h5>
+              <p>{{ comment.content }}</p>
+            </div>
+          </div>
+        {% empty %}
+          <p>No comments yet.</p>
+        {% endfor %}
+      </div>
     </div>
     <div class="card-footer text-muted">{{ post.created_at }}</div>
   </div>
-  <div>
-    {% if user == post.author or perms.main.delete_post %}
-    <form method="post">
-      {% csrf_token %}
-      <button
-        type="submit"
-        class="btn btn-danger"
-        name="post-id"
-        value="{{post.id}}"
-      >
-        Delete
-      </button>
-    </form>
-    <a href="{% url 'post-edit' post.id %}" class="btn btn-primary">Edit</a>
-    {% endif %}
-    {% if user.is_staff %}
-    <form method="post">
-      {% csrf_token %}
-      <button
-        type="submit"
-        class="btn btn-warning"
-        name="user-id"
-        value="{{post.author.id}}"
-      >
-        Ban User
-      </button>
-    </form>
-    {% endif %}
-  </div>
 
-  <!-- Display comments for the post -->
-  <div class="card mt-2">
-    <div class="card-header"><strong>Comments</strong></div>
-    <div class="card-body">
-      {% for comment in comments %}
-        <div class="media mt-2">
-          <div class="media-body">
-            <h5 class="mt-0">{{ comment.author.username }}</h5>
-            <p>{{ comment.content }}</p>
-          </div>
-        </div>
-      {% empty %}
-        <p>No comments yet.</p>
-      {% endfor %}
-    </div>
-  </div>
 
   <!-- Add a form to allow users to submit comments -->
   <div class="card mt-2">

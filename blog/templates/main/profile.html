@@ -6,22 +6,6 @@
     <div>
       <h5 class="card-title"><a href="{% url 'post-detail' post.id %}">{{post.title}}</a></h5>
       <p>{{post.content}}</p>
-      <!-- Display comments for the post -->
-<div class="card mt-2">
-  <div class="card-header"><strong>Comments</strong></div>
-  <div class="card-body">
-    {% for comment in post.comment_set.all %}
-      <div class="media mt-2">
-        <div class="media-body">
-          <h5 class="mt-0">{{ comment.author.username }}</h5>
-          <p>{{ comment.content }}</p>
-        </div>
-      </div>
-    {% empty %}
-      <p>No comments yet.</p>
-    {% endfor %}
-  </div>
-</div>
     </div>
     <div>
       {% if user == post.author or perms.main.delete_post %}
@@ -53,6 +37,22 @@
       {% endif %}
     </div>
   </div>
+        <!-- Display comments for the post -->
+<div class="card mt-2">
+  <div class="card-header"><strong>Comments</strong></div>
+  <div class="card-body">
+    {% for comment in post.comment_set.all %}
+      <div class="media mt-2">
+        <div class="media-body">
+          <h5 class="mt-0">{{ comment.author.username }}</h5>
+          <p>{{ comment.content }}</p>
+        </div>
+      </div>
+    {% empty %}
+      <p>No comments yet.</p>
+    {% endfor %}
+  </div>
+</div>
   <div class="card-footer text-muted">{{post.created_at}}</div>
 </div>
     <!-- Add a form to allow users to submit comments -->
