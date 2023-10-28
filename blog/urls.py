@@ -1,17 +1,3 @@
-# from django.urls import path
-# from . import views
-
-# urlpatterns = [
-#     path('', views.home, name='home'),
-#     path('home', views.home, name='home'),
-#     path('register/', views.sign_up, name='registration'),
-#     path('login/', views.login, name='login'),
-#     path('logout/', views.logout, name='logout'),
-#     path('post/create/', views.create_post, name='post-create'),
-#     path('post/<int:post_id>/', views.post_detail, name='post-detail'),
-
-# ]
-
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 
